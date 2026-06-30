@@ -389,6 +389,15 @@
             color: #4a148c;
         }
 
+        .result-item.destaque-total-vendido-geral {
+            border-color: #00695c;
+            background: #e0f2f1;
+        }
+
+        .result-item.destaque-total-vendido-geral .valor {
+            color: #004d40;
+        }
+
         .footer-info {
             margin-top: 18px;
             color: #3f5d78;
@@ -473,7 +482,7 @@
     <h1>Pasteis · Controle</h1>
     <div class="subhead">
         <span>Recebimento em 2 dias · queijo / carne</span>
-        <span style="margin-left: auto; background: #d0e2f5; padding: 0 12px; border-radius: 30px;">v4.7</span>
+        <span style="margin-left: auto; background: #d0e2f5; padding: 0 12px; border-radius: 30px;">v4.8</span>
     </div>
 
     <div class="legenda">
@@ -679,7 +688,14 @@
                 <div class="detalhe">(rec1 - perd1) + (rec2 - perd2) - saldo2</div>
             </div>
 
-            <!-- Financeiro -->
+            <!-- NOVO: TOTAL GERAL VENDIDO (soma de queijo + carne) -->
+            <div class="result-item destaque-total-vendido-geral">
+                <div class="tipo">TOTAL GERAL VENDIDO</div>
+                <div class="valor" id="resTotalGeralVendido">0</div>
+                <div class="detalhe">queijo + carne</div>
+            </div>
+
+            <!-- Financeiro - Linha 1 -->
             <div class="result-item">
                 <div class="tipo">Custo total</div>
                 <div class="valor" id="resCustoTotal">R$ 0,00</div>
@@ -692,6 +708,7 @@
                 <div class="detalhe">(vendQ * vendaQ) + (vendC * vendaC)</div>
             </div>
 
+            <!-- Lucro - Linha 2 -->
             <div class="result-item destaque-lucro">
                 <div class="tipo">Lucro apurado</div>
                 <div class="valor" id="resLucroTotal">R$ 0,00</div>
@@ -701,7 +718,7 @@
     </div>
     <div class="footer-info">
         <span>Os cálculos são atualizados automaticamente</span>
-        <span style="margin-left: auto;">v4.7 · PWA</span>
+        <span style="margin-left: auto;">v4.8 · PWA</span>
     </div>
 </div>
 
@@ -752,6 +769,7 @@
         const resCarneTotalPerdido = document.getElementById('resCarneTotalPerdido');
         const resQueijoTotalVendido = document.getElementById('resQueijoTotalVendido');
         const resCarneTotalVendido = document.getElementById('resCarneTotalVendido');
+        const resTotalGeralVendido = document.getElementById('resTotalGeralVendido');
         const resCustoTotal = document.getElementById('resCustoTotal');
         const resVendaTotal = document.getElementById('resVendaTotal');
         const resLucroTotal = document.getElementById('resLucroTotal');
@@ -831,7 +849,6 @@
             const totalCarnePerdido = pC1 + pC2;
 
             // 3. CÁLCULO DOS VENDIDOS
-            // Fórmula: (Recebidos Dia 1 - Perdidos Dia 1) + (Recebidos Dia 2 - Perdidos Dia 2) - Saldo Dia 2
             const disponivelQueijo1 = Math.max(0, q1 - pQ1);
             const disponivelQueijo2 = Math.max(0, q2 - pQ2);
             const vendidosQueijo = Math.max(0, disponivelQueijo1 + disponivelQueijo2 - sQ2);
@@ -840,10 +857,11 @@
             const disponivelCarne2 = Math.max(0, c2 - pC2);
             const vendidosCarne = Math.max(0, disponivelCarne1 + disponivelCarne2 - sC2);
 
+            // 4. TOTAL GERAL VENDIDO (soma de queijo + carne)
+            const totalGeralVendido = vendidosQueijo + vendidosCarne;
+
             // ============================================================
-            // CÁLCULO FINANCEIRO (CORRIGIDO)
-            // Custo total = (total vendido queijo * custo queijo) + (total vendido carne * custo carne)
-            // Venda total = (total vendido queijo * venda queijo) + (total vendido carne * venda carne)
+            // CÁLCULO FINANCEIRO
             // ============================================================
             const custoQ = parseFloat(precoCustoQueijo.value) || 0;
             const custoC = parseFloat(precoCustoCarne.value) || 0;
@@ -869,6 +887,9 @@
             // Totais Vendidos
             resQueijoTotalVendido.textContent = formatNumber(vendidosQueijo);
             resCarneTotalVendido.textContent = formatNumber(vendidosCarne);
+            
+            // NOVO: Total Geral Vendido
+            resTotalGeralVendido.textContent = formatNumber(totalGeralVendido);
 
             // Financeiro
             resCustoTotal.textContent = formatCurrency(custoTotal);
@@ -879,7 +900,6 @@
         // ============================================================
         // EVENTOS - ATUALIZAÇÃO AUTOMÁTICA
         // ============================================================
-        // Todos os campos numéricos chamam a função de cálculo ao serem alterados
         const inputs = document.querySelectorAll('input[type="number"]');
         inputs.forEach(inp => {
             inp.addEventListener('input', calcular);
