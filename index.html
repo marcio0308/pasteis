@@ -59,6 +59,37 @@
             gap: 6px;
         }
 
+        .status-salvo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+            font-size: 0.75rem;
+            color: #2e7d32;
+            background: #e8f5e9;
+            padding: 4px 12px;
+            border-radius: 30px;
+            border: 1px solid #a5d6a7;
+        }
+
+        .status-salvo .indicador {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4caf50;
+            display: inline-block;
+        }
+
+        .status-salvo .indicador.salvando {
+            background: #ff9800;
+            animation: piscar 0.8s infinite;
+        }
+
+        @keyframes piscar {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
         .dias-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -398,6 +429,37 @@
             color: #004d40;
         }
 
+        .btn-salvar {
+            background: #2e7d32;
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 500;
+            border-radius: 60px;
+            cursor: pointer;
+            transition: 0.15s;
+            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+            border: 1px solid #43a047;
+            margin-top: 16px;
+            width: 100%;
+        }
+
+        .btn-salvar:hover {
+            background: #1b5e20;
+            transform: scale(1.01);
+        }
+
+        .btn-salvar:active {
+            background: #0d3d12;
+            transform: scale(0.97);
+        }
+
+        .btn-salvar:disabled {
+            background: #a5d6a7;
+            cursor: not-allowed;
+        }
+
         .footer-info {
             margin-top: 18px;
             color: #3f5d78;
@@ -458,6 +520,7 @@
             .subhead { font-size: 0.82rem; padding: 8px 12px; }
             .divisoria-campo { flex-wrap: wrap; }
             .divisoria-campo .sub-campo input { width: 60px; flex: 0 0 60px; }
+            .btn-salvar { padding: 14px 18px; font-size: 0.95rem; }
         }
 
         @media (max-width: 420px) {
@@ -482,7 +545,10 @@
     <h1>Pasteis · Controle</h1>
     <div class="subhead">
         <span>Recebimento em 2 dias · queijo / carne</span>
-        <span style="margin-left: auto; background: #d0e2f5; padding: 0 12px; border-radius: 30px;">v4.8</span>
+        <div class="status-salvo" id="statusSalvo">
+            <span class="indicador" id="indicadorStatus"></span>
+            <span id="textoStatus">Dados salvos</span>
+        </div>
     </div>
 
     <div class="legenda">
@@ -688,14 +754,14 @@
                 <div class="detalhe">(rec1 - perd1) + (rec2 - perd2) - saldo2</div>
             </div>
 
-            <!-- NOVO: TOTAL GERAL VENDIDO (soma de queijo + carne) -->
+            <!-- TOTAL GERAL VENDIDO -->
             <div class="result-item destaque-total-vendido-geral">
                 <div class="tipo">TOTAL GERAL VENDIDO</div>
                 <div class="valor" id="resTotalGeralVendido">0</div>
                 <div class="detalhe">queijo + carne</div>
             </div>
 
-            <!-- Financeiro - Linha 1 -->
+            <!-- Financeiro -->
             <div class="result-item">
                 <div class="tipo">Custo total</div>
                 <div class="valor" id="resCustoTotal">R$ 0,00</div>
@@ -708,25 +774,28 @@
                 <div class="detalhe">(vendQ * vendaQ) + (vendC * vendaC)</div>
             </div>
 
-            <!-- Lucro - Linha 2 -->
             <div class="result-item destaque-lucro">
                 <div class="tipo">Lucro apurado</div>
                 <div class="valor" id="resLucroTotal">R$ 0,00</div>
                 <div class="detalhe">venda - custo</div>
             </div>
         </div>
+
+        <!-- BOTÃO SALVAR -->
+        <button class="btn-salvar" id="btnSalvar">💾 Salvar dados</button>
     </div>
     <div class="footer-info">
         <span>Os cálculos são atualizados automaticamente</span>
-        <span style="margin-left: auto;">v1.26 · PWA</span>
+        <span style="margin-left: auto;">v5.0 · PWA</span>
     </div>
 </div>
 
 <script>
     (function() {
         // ============================================================
-        // DIA 1
+        // REFERÊNCIAS DOS CAMPOS
         // ============================================================
+        // DIA 1
         const d1RecebQueijo = document.getElementById('d1RecebQueijo');
         const d1RecebCarne = document.getElementById('d1RecebCarne');
         const d1PerdidosQueijo = document.getElementById('d1PerdidosQueijo');
@@ -736,9 +805,7 @@
         const d1SaldoCarne = document.getElementById('d1SaldoCarne');
         const d1SaldoTotal = document.getElementById('d1SaldoTotal');
 
-        // ============================================================
         // DIA 2
-        // ============================================================
         const d2SaldoAntQueijo = document.getElementById('d2SaldoAntQueijo');
         const d2SaldoAntCarne = document.getElementById('d2SaldoAntCarne');
         const d2SaldoAntTotal = document.getElementById('d2SaldoAntTotal');
@@ -751,17 +818,13 @@
         const d2SaldoCarne = document.getElementById('d2SaldoCarne');
         const d2SaldoTotal = document.getElementById('d2SaldoTotal');
 
-        // ============================================================
         // PREÇOS
-        // ============================================================
         const precoCustoQueijo = document.getElementById('precoCustoQueijo');
         const precoCustoCarne = document.getElementById('precoCustoCarne');
         const precoVendaQueijo = document.getElementById('precoVendaQueijo');
         const precoVendaCarne = document.getElementById('precoVendaCarne');
 
-        // ============================================================
         // RESULTADOS
-        // ============================================================
         const resQueijoTotalRecebido = document.getElementById('resQueijoTotalRecebido');
         const resCarneTotalRecebido = document.getElementById('resCarneTotalRecebido');
         const resTotalGeralRecebido = document.getElementById('resTotalGeralRecebido');
@@ -773,6 +836,12 @@
         const resCustoTotal = document.getElementById('resCustoTotal');
         const resVendaTotal = document.getElementById('resVendaTotal');
         const resLucroTotal = document.getElementById('resLucroTotal');
+
+        // STATUS
+        const statusSalvo = document.getElementById('statusSalvo');
+        const indicadorStatus = document.getElementById('indicadorStatus');
+        const textoStatus = document.getElementById('textoStatus');
+        const btnSalvar = document.getElementById('btnSalvar');
 
         // ============================================================
         // FUNÇÕES AUXILIARES
@@ -791,12 +860,99 @@
         }
 
         // ============================================================
+        // FUNÇÃO PARA OBTER TODOS OS DADOS
+        // ============================================================
+        function obterDados() {
+            return {
+                d1RecebQueijo: d1RecebQueijo.value,
+                d1RecebCarne: d1RecebCarne.value,
+                d1PerdidosQueijo: d1PerdidosQueijo.value,
+                d1PerdidosCarne: d1PerdidosCarne.value,
+                d1SaldoQueijo: d1SaldoQueijo.value,
+                d1SaldoCarne: d1SaldoCarne.value,
+                d2RecebQueijo: d2RecebQueijo.value,
+                d2RecebCarne: d2RecebCarne.value,
+                d2PerdidosQueijo: d2PerdidosQueijo.value,
+                d2PerdidosCarne: d2PerdidosCarne.value,
+                d2SaldoQueijo: d2SaldoQueijo.value,
+                d2SaldoCarne: d2SaldoCarne.value,
+                precoCustoQueijo: precoCustoQueijo.value,
+                precoCustoCarne: precoCustoCarne.value,
+                precoVendaQueijo: precoVendaQueijo.value,
+                precoVendaCarne: precoVendaCarne.value
+            };
+        }
+
+        // ============================================================
+        // FUNÇÃO PARA RESTAURAR DADOS
+        // ============================================================
+        function restaurarDados(dados) {
+            if (!dados) return false;
+            
+            d1RecebQueijo.value = dados.d1RecebQueijo || 600;
+            d1RecebCarne.value = dados.d1RecebCarne || 400;
+            d1PerdidosQueijo.value = dados.d1PerdidosQueijo || 0;
+            d1PerdidosCarne.value = dados.d1PerdidosCarne || 0;
+            d1SaldoQueijo.value = dados.d1SaldoQueijo || 0;
+            d1SaldoCarne.value = dados.d1SaldoCarne || 0;
+            d2RecebQueijo.value = dados.d2RecebQueijo || 0;
+            d2RecebCarne.value = dados.d2RecebCarne || 0;
+            d2PerdidosQueijo.value = dados.d2PerdidosQueijo || 0;
+            d2PerdidosCarne.value = dados.d2PerdidosCarne || 0;
+            d2SaldoQueijo.value = dados.d2SaldoQueijo || 0;
+            d2SaldoCarne.value = dados.d2SaldoCarne || 0;
+            precoCustoQueijo.value = dados.precoCustoQueijo || 4.25;
+            precoCustoCarne.value = dados.precoCustoCarne || 4.25;
+            precoVendaQueijo.value = dados.precoVendaQueijo || 8.00;
+            precoVendaCarne.value = dados.precoVendaCarne || 8.00;
+            
+            return true;
+        }
+
+        // ============================================================
+        // FUNÇÃO PARA SALVAR NO LOCALSTORAGE
+        // ============================================================
+        function salvarDados() {
+            try {
+                const dados = obterDados();
+                localStorage.setItem('pasteis_dados', JSON.stringify(dados));
+                
+                // Atualizar status
+                indicadorStatus.className = 'indicador';
+                textoStatus.textContent = 'Dados salvos';
+                statusSalvo.style.opacity = '1';
+                
+                return true;
+            } catch (e) {
+                console.error('Erro ao salvar:', e);
+                return false;
+            }
+        }
+
+        // ============================================================
+        // FUNÇÃO PARA CARREGAR DADOS DO LOCALSTORAGE
+        // ============================================================
+        function carregarDados() {
+            try {
+                const dadosSalvos = localStorage.getItem('pasteis_dados');
+                if (dadosSalvos) {
+                    const dados = JSON.parse(dadosSalvos);
+                    restaurarDados(dados);
+                    textoStatus.textContent = 'Dados restaurados';
+                    return true;
+                }
+                return false;
+            } catch (e) {
+                console.error('Erro ao carregar:', e);
+                return false;
+            }
+        }
+
+        // ============================================================
         // FUNÇÃO PRINCIPAL DE CÁLCULO
         // ============================================================
         function calcular() {
-            // ============================================================
-            // DIA 1 - LEITURA DOS VALORES
-            // ============================================================
+            // DIA 1
             const q1 = parseInt(d1RecebQueijo.value) || 0;
             const c1 = parseInt(d1RecebCarne.value) || 0;
             const pQ1 = parseInt(d1PerdidosQueijo.value) || 0;
@@ -804,23 +960,17 @@
             const sQ1 = parseInt(d1SaldoQueijo.value) || 0;
             const sC1 = parseInt(d1SaldoCarne.value) || 0;
 
-            // Totais do dia 1
             const perdidosTotal1 = pQ1 + pC1;
             d1PerdidosTotal.value = perdidosTotal1;
 
             const saldoTotal1 = sQ1 + sC1;
             d1SaldoTotal.value = saldoTotal1;
 
-            // ============================================================
-            // DIA 2 - SALDO ANTERIOR HERDADO DO DIA 1
-            // ============================================================
+            // DIA 2 - Saldo anterior
             d2SaldoAntQueijo.value = sQ1;
             d2SaldoAntCarne.value = sC1;
             d2SaldoAntTotal.value = saldoTotal1;
 
-            // ============================================================
-            // DIA 2 - LEITURA DOS VALORES
-            // ============================================================
             const q2 = parseInt(d2RecebQueijo.value) || 0;
             const c2 = parseInt(d2RecebCarne.value) || 0;
             const pQ2 = parseInt(d2PerdidosQueijo.value) || 0;
@@ -828,27 +978,20 @@
             const sQ2 = parseInt(d2SaldoQueijo.value) || 0;
             const sC2 = parseInt(d2SaldoCarne.value) || 0;
 
-            // Totais do dia 2
             const perdidosTotal2 = pQ2 + pC2;
             d2PerdidosTotal.value = perdidosTotal2;
 
             const saldoTotal2 = sQ2 + sC2;
             d2SaldoTotal.value = saldoTotal2;
 
-            // ============================================================
-            // CÁLCULO DOS TOTAIS POR TIPO
-            // ============================================================
-            
-            // 1. TOTAIS RECEBIDOS
+            // TOTAIS
             const totalQueijoRecebido = q1 + q2;
             const totalCarneRecebido = c1 + c2;
             const totalGeralRecebido = totalQueijoRecebido + totalCarneRecebido;
 
-            // 2. TOTAIS PERDIDOS
             const totalQueijoPerdido = pQ1 + pQ2;
             const totalCarnePerdido = pC1 + pC2;
 
-            // 3. CÁLCULO DOS VENDIDOS
             const disponivelQueijo1 = Math.max(0, q1 - pQ1);
             const disponivelQueijo2 = Math.max(0, q2 - pQ2);
             const vendidosQueijo = Math.max(0, disponivelQueijo1 + disponivelQueijo2 - sQ2);
@@ -857,12 +1000,9 @@
             const disponivelCarne2 = Math.max(0, c2 - pC2);
             const vendidosCarne = Math.max(0, disponivelCarne1 + disponivelCarne2 - sC2);
 
-            // 4. TOTAL GERAL VENDIDO (soma de queijo + carne)
             const totalGeralVendido = vendidosQueijo + vendidosCarne;
 
-            // ============================================================
-            // CÁLCULO FINANCEIRO
-            // ============================================================
+            // FINANCEIRO
             const custoQ = parseFloat(precoCustoQueijo.value) || 0;
             const custoC = parseFloat(precoCustoCarne.value) || 0;
             const vendaQ = parseFloat(precoVendaQueijo.value) || 0;
@@ -872,46 +1012,90 @@
             const vendaTotal = (vendidosQueijo * vendaQ) + (vendidosCarne * vendaC);
             const lucro = vendaTotal - custoTotal;
 
-            // ============================================================
-            // ATUALIZAR RESULTADOS NA TELA
-            // ============================================================
-            // Totais Recebidos
+            // ATUALIZAR TELA
             resQueijoTotalRecebido.textContent = formatNumber(totalQueijoRecebido);
             resCarneTotalRecebido.textContent = formatNumber(totalCarneRecebido);
             resTotalGeralRecebido.textContent = formatNumber(totalGeralRecebido);
 
-            // Totais Perdidos
             resQueijoTotalPerdido.textContent = formatNumber(totalQueijoPerdido);
             resCarneTotalPerdido.textContent = formatNumber(totalCarnePerdido);
 
-            // Totais Vendidos
             resQueijoTotalVendido.textContent = formatNumber(vendidosQueijo);
             resCarneTotalVendido.textContent = formatNumber(vendidosCarne);
-            
-            // NOVO: Total Geral Vendido
             resTotalGeralVendido.textContent = formatNumber(totalGeralVendido);
 
-            // Financeiro
             resCustoTotal.textContent = formatCurrency(custoTotal);
             resVendaTotal.textContent = formatCurrency(vendaTotal);
             resLucroTotal.textContent = formatCurrency(lucro);
         }
 
         // ============================================================
-        // EVENTOS - ATUALIZAÇÃO AUTOMÁTICA
+        // FUNÇÃO PARA SALVAR E CALCULAR
         // ============================================================
-        const inputs = document.querySelectorAll('input[type="number"]');
-        inputs.forEach(inp => {
-            inp.addEventListener('input', calcular);
-        });
+        function salvarECalcular() {
+            // Calcular primeiro
+            calcular();
+            
+            // Salvar dados
+            const salvou = salvarDados();
+            
+            if (salvou) {
+                btnSalvar.textContent = '✅ Dados salvos!';
+                btnSalvar.style.background = '#2e7d32';
+                
+                setTimeout(() => {
+                    btnSalvar.textContent = '💾 Salvar dados';
+                    btnSalvar.style.background = '';
+                }, 2000);
+            }
+        }
 
-        // Inicializar os cálculos ao carregar a página
+        // ============================================================
+        // INICIALIZAÇÃO
+        // ============================================================
+        
+        // Tentar carregar dados salvos
+        const dadosCarregados = carregarDados();
+        
+        if (dadosCarregados) {
+            textoStatus.textContent = 'Dados restaurados';
+            indicadorStatus.className = 'indicador';
+        } else {
+            // Valores padrão
+            textoStatus.textContent = 'Novos dados';
+        }
+
+        // Calcular inicialmente
         calcular();
 
+        // ============================================================
+        // EVENTOS
+        // ============================================================
+        
+        // Todos os campos numéricos - recalcular e salvar automaticamente
+        const inputs = document.querySelectorAll('input[type="number"]');
+        inputs.forEach(inp => {
+            inp.addEventListener('input', function() {
+                calcular();
+                salvarDados();
+                
+                // Indicar que foi salvo
+                indicadorStatus.className = 'indicador';
+                textoStatus.textContent = 'Dados salvos';
+            });
+        });
+
+        // Botão salvar
+        btnSalvar.addEventListener('click', salvarECalcular);
+
+        // ============================================================
         // PWA
+        // ============================================================
         if ('serviceWorker' in navigator) {
             console.log('PWA: Service Worker disponivel');
         }
+
+        console.log('✅ Sistema iniciado - dados são salvos automaticamente!');
     })();
 </script>
 </body>
